@@ -31,7 +31,7 @@ NetEase:
   c_temps: [0.2] # the temperature in the contrastive loss: tau
 
   epochs: 50 # number of epochs to train
-  test_interval: 5 # by how many epochs to run the validation and testing.
+  test_interval: 1 # by how many epochs to run the validation and testing.
 
 
 iFashion:
@@ -63,7 +63,7 @@ iFashion:
   c_temps: [0.2]
 
   epochs: 50
-  test_interval: 5 
+  test_interval: 1
 
 
 Youshu:
@@ -95,4 +95,4 @@ Youshu:
   c_temps: [0.23]
 
   epochs: 100
-  test_interval: 5
+  test_interval: 1
