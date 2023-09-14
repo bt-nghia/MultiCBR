@@ -68,6 +68,8 @@ class MultiCBR(nn.Module):
         assert isinstance(raw_graph, list)
         self.ub_graph, self.ui_graph, self.bi_graph = raw_graph
 
+        #item co-ocurence graph
+        self.ii_graph = self.bi_graph.T @ self.bi_graph
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
 
@@ -77,6 +79,8 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
 
+        self.II_propagation_graph_ori = self.get_propagation_graph_ii(self.ii_graph)
+
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
 
@@ -85,6 +89,8 @@ class MultiCBR(nn.Module):
 
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
+
+        self.II_propagation_graph = self.get_propagation_graph_ii(self.ii_graph, self.conf["II_ratio"])
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -96,10 +102,12 @@ class MultiCBR(nn.Module):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
         self.UI_dropout = nn.Dropout(self.conf["UI_ratio"], True)
         self.BI_dropout = nn.Dropout(self.conf["BI_ratio"], True)
+        self.II_dropout = nn.Dropout(self.conf["II_ratio"], True)
         self.mess_dropout_dict = {
             "UB": self.UB_dropout,
             "UI": self.UI_dropout,
-            "BI": self.BI_dropout
+            "BI": self.BI_dropout,
+            "II": self.II_dropout,
         }
 
 
@@ -107,10 +115,12 @@ class MultiCBR(nn.Module):
         self.UB_eps = self.conf["UB_ratio"]
         self.UI_eps = self.conf["UI_ratio"]
         self.BI_eps = self.conf["BI_ratio"]
+        self.II_eps = self.conf["II_ratio"]
         self.eps_dict = {
             "UB": self.UB_eps,
             "UI": self.UI_eps,
-            "BI": self.BI_eps
+            "BI": self.BI_eps,
+            "II": self.II_eps,
         }
 
 
@@ -155,7 +165,17 @@ class MultiCBR(nn.Module):
                 propagation_graph = sp.coo_matrix((values, (graph.row, graph.col)), shape=graph.shape).tocsr()
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
+    
+    def get_propagation_graph_ii(self, co_graph, modification_ratio=0):
+        propagation_graph = co_graph
 
+        if modification_ratio != 0:
+            if self.conf['aug_type'] == 'ED':
+                graph = propagation_graph.tocoo()
+                vals = np_edge_dropout(graph.data, modification_ratio)
+                propagation_graph = sp.coo_matrix((vals, (graph.row, graph.col)), shape=graph.shape).tocsr()
+
+        return to_tensor(laplace_transform(propagation_graph)).to(self.device)
 
     def get_aggregation_graph(self, bipartite_graph, modification_ratio=0):
         device = self.device
@@ -193,6 +213,21 @@ class MultiCBR(nn.Module):
 
         return A_feature, B_feature
 
+    def ii_propagate(self, ii_graph, i_feat, graph_type, layer_coef, test):
+        all_features = [i_feat]
+        for i in range(self.num_layers):
+            i_feat = torch.spmm(ii_graph, i_feat)
+            if self.conf['aug_type'] == "MD" and not test:
+                mess_dropout = self.mess_dropout_dict[graph_type]
+                i_feat = mess_dropout(i_feat)
+            elif self.conf['aug_type'] == "Noise" and not test:
+                random_noise = torch.rand_like(i_feat).to(self.device)
+                eps = self.eps_dict[graph_type]
+                i_feat += torch.sgn(i_feat) * F.normalize(random_noise, dim=-1) * eps
+            all_features.append(F.normalize(i_feat, p=2, dim=1))
+        all_features = torch.stack(all_features, dim=1)
+        all_features = torch.sum(all_features, dim=1)
+        return all_features
 
     def aggregate(self, agg_graph, node_feature, graph_type, test):
         aggregated_feature = torch.matmul(agg_graph, node_feature)
@@ -242,6 +277,12 @@ class MultiCBR(nn.Module):
         else:
             BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
+
+        # ============================== II graph propagation ===============================
+        if test:
+            II_item = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
+        else:
+            II_item = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
 
         users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]

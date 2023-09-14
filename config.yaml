@@ -82,6 +82,7 @@ Youshu:
   UB_ratios: [0.2]
   UI_ratios: [0.1]
   BI_ratios: [0.1]
+  II_ratios: [0.1]
 
   fusion_weights:
     modal_weight: [0.35, 0.15, 0.5]
@@ -95,4 +96,4 @@ Youshu:
   c_temps: [0.23]
 
   epochs: 100
-  test_interval: 1
+  test_interval: 5
