@@ -90,7 +90,7 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
 
-        self.II_propagation_graph = self.get_propagation_graph_ii(self.ii_graph, self.conf["II_ratio"])
+        self.II_propagation_graph = self.get_propagation_graph_ii(self.ii_graph, 0)
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -217,13 +217,6 @@ class MultiCBR(nn.Module):
         all_features = [i_feat]
         for i in range(self.num_layers):
             i_feat = torch.spmm(ii_graph, i_feat)
-            if self.conf['aug_type'] == "MD" and not test:
-                mess_dropout = self.mess_dropout_dict[graph_type]
-                i_feat = mess_dropout(i_feat)
-            elif self.conf['aug_type'] == "Noise" and not test:
-                random_noise = torch.rand_like(i_feat).to(self.device)
-                eps = self.eps_dict[graph_type]
-                i_feat += torch.sgn(i_feat) * F.normalize(random_noise, dim=-1) * eps
             all_features.append(F.normalize(i_feat, p=2, dim=1))
         all_features = torch.stack(all_features, dim=1)
         all_features = torch.sum(all_features, dim=1)
@@ -256,6 +249,15 @@ class MultiCBR(nn.Module):
 
 
     def get_multi_modal_representations(self, test=False):
+        # ==============================  II graph propagation  =============================
+        # if test:
+        #     II_items_feature = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
+        #     II_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, II_items_feature, "BI", test)
+        #     II_users_feature = self.aggregate(self.UI_aggregation_graph_ori, II_items_feature, "UI", test)
+        # else:
+        #     II_items_feature = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
+        #     II_bundles_feature = self.aggregate(self.BI_aggregation_graph, II_items_feature, "BI", test)
+        #     II_users_feature = self.aggregate(self.UI_aggregation_graph, II_items_feature, "UI", test)
         #  =============================  UB graph propagation  =============================
         if test:
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
@@ -278,11 +280,6 @@ class MultiCBR(nn.Module):
             BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
-        # ============================== II graph propagation ===============================
-        if test:
-            II_item = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
-        else:
-            II_item = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
 
         users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]
