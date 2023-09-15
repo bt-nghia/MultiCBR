@@ -237,7 +237,9 @@ def test(model, dataloader, conf):
         for topk in conf["topk"]:
             tmp_metrics[m][topk] = [0, 0]
 
-    device = conf["device"]
+    # device = conf["device"]
+    # multigpu
+    device = torch.device('cuda:1')
     model.eval()
     rs = model.get_multi_modal_representations(test=True)
     for users, ground_truth_u_b, train_mask_u_b in dataloader:
