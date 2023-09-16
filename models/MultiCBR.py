@@ -374,16 +374,23 @@ class MultiCBR(nn.Module):
         scores = torch.mm(users_feature[users], bundles_feature.t())
         return scores
     
-    # def cal_topK_c_loss(self, eck, vck, kp, kn, c_temp):
+    def cal_topK_c_loss(self, eck, vck, kp, kn, c_temp, threshold=5e-1):
+        '''
+        contrastive loss for top k pairs
+        kp: topk positive
+        kn: topk negative
+        c_temp: weight for loss
+        '''
+        eck = F.normalize(eck, p=2, dim=1)
+        vck = F.normalize(vck, p=2, dim=1)
 
-    #     eck = F.normalize(eck, p=2, dim=1)
-    #     vck = F.normalize(vck, p=2, dim=1)
+        sim = eck @ vck.T
 
-    #     sim = eck @ vck
+        topk_pos = torch.topk(sim, kp, dim=1)
+        topk_neg = torch.topk(sim, kn, dim=1)
 
-    #     topk_pos = torch.topk(sim, kp, dim=1)
-    #     topk_neg = torch.topk(sim, kn, dim=1)
-
+        ep = torch.sum(torch.exp(topk_pos.values), dim=1)
+        en = torch.sum(torch.exp(topk_neg.values), dim=1)
         
-
-    #     return c_temp
+        c_loss = -torch.mean(torch.log(ep / en))
+        return c_temp * c_loss
