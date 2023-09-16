@@ -87,7 +87,7 @@ Youshu:
   UBI_ratios: [0.0]
 
   fusion_weights:
-    modal_weight: [0.35, 0.15, 0.4, 0.1]
+    modal_weight: [0.25, 0.1, 0.5, 0.15]
     UB_layer: [0.7, 0.2, 0.1]
     UI_layer: [0.6, 0.2, 0.2]
     BI_layer: [0.6, 0.1, 0.3]
