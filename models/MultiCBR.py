@@ -364,9 +364,9 @@ class MultiCBR(nn.Module):
         users_embedding = users_rep[users].expand(-1, bundles.shape[1], -1)
         bundles_embedding = bundles_rep[bundles]
 
-        bpr_loss, _ = self.cal_loss(users_embedding, bundles_embedding)
+        bpr_loss, c_loss = self.cal_loss(users_embedding, bundles_embedding)
 
-        return bpr_loss, torch.zeros(1).to(self.device)
+        return bpr_loss, c_loss
 
 
     def evaluate(self, propagate_result, users):
