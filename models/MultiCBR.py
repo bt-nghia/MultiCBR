@@ -299,15 +299,12 @@ class MultiCBR(nn.Module):
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
 
 
-        # users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
-        # bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]
-
         users_feature = [UB_users_feature, UI_users_feature, BI_users_feature, UBI_users_feature]
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature, UBI_bundles_feature]
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
 
-        return users_rep, bundles_rep
+        return users_rep, bundles_rep, users_feature, bundles_feature
 
 
     def cal_c_loss(self, pos, aug):
@@ -334,15 +331,7 @@ class MultiCBR(nn.Module):
         pred = torch.sum(users_feature * bundles_feature, 2)
         bpr_loss = cal_bpr_loss(pred)
 
-        # cl is abbr. of "contrastive loss"
-        u_view_cl = self.cal_topK_c_loss(users_feature, users_feature)
-        b_view_cl = self.cal_topK_c_loss(bundles_feature, bundles_feature)
-
-        c_losses = [u_view_cl, b_view_cl]
-
-        c_loss = sum(c_losses) / len(c_losses)
-
-        return bpr_loss, c_loss
+        return bpr_loss
 
 
     def forward(self, batch, ED_drop=False):
@@ -359,12 +348,18 @@ class MultiCBR(nn.Module):
         # users: [bs, 1]
         # bundles: [bs, 1+neg_num]
         users, bundles = batch
-        users_rep, bundles_rep = self.get_multi_modal_representations()
+        users_rep, bundles_rep, u_, b_ = self.get_multi_modal_representations()
 
         users_embedding = users_rep[users].expand(-1, bundles.shape[1], -1)
         bundles_embedding = bundles_rep[bundles]
 
-        bpr_loss, c_loss = self.cal_loss(users_embedding, bundles_embedding)
+        bpr_loss = self.cal_loss(users_embedding, bundles_embedding)
+
+        # cl is abbr. of "contrastive loss"
+        u_view_cl = self.cal_c_loss(users_embedding, users_embedding)
+        b_view_cl = self.cal_c_loss(bundles_embedding, bundles_embedding)
+        c_losses = [u_view_cl, b_view_cl]
+        c_loss = sum(c_losses) / len(c_losses)
 
         return bpr_loss, c_loss
 
