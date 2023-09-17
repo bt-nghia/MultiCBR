@@ -230,7 +230,7 @@ class MultiCBR(nn.Module):
             all_features.append(F.normalize(i_feat, p=2, dim=1))
         all_features = torch.stack(all_features, dim=1)
         all_features = torch.sum(all_features, dim=1)
-        return all_features
+        return all_features / self.num_layers
 
     def aggregate(self, agg_graph, node_feature, graph_type, test):
         aggregated_feature = torch.matmul(agg_graph, node_feature)
