@@ -262,12 +262,8 @@ class MultiCBR(nn.Module):
         # ==============================  II graph propagation  =============================
         if test:
             II_items_feature = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
-            II_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, II_items_feature, "BI", test)
-            II_users_feature = self.aggregate(self.UI_aggregation_graph_ori, II_items_feature, "UI", test)
         else:
             II_items_feature = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
-            II_bundles_feature = self.aggregate(self.BI_aggregation_graph, II_items_feature, "BI", test)
-            II_users_feature = self.aggregate(self.UI_aggregation_graph, II_items_feature, "UI", test)
         #  =============================  UB graph propagation  =============================
         if test:
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
@@ -292,10 +288,10 @@ class MultiCBR(nn.Module):
 
         # ==============================  UBI graph propagation =============================
         if test:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, II_items_feature, "UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
         else:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, II_items_feature, "UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
 
 
