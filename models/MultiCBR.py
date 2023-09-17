@@ -260,14 +260,14 @@ class MultiCBR(nn.Module):
 
     def get_multi_modal_representations(self, test=False):
         # ==============================  II graph propagation  =============================
-        # if test:
-        #     II_items_feature = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
-        #     II_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, II_items_feature, "BI", test)
-        #     II_users_feature = self.aggregate(self.UI_aggregation_graph_ori, II_items_feature, "UI", test)
-        # else:
-        #     II_items_feature = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
-        #     II_bundles_feature = self.aggregate(self.BI_aggregation_graph, II_items_feature, "BI", test)
-        #     II_users_feature = self.aggregate(self.UI_aggregation_graph, II_items_feature, "UI", test)
+        if test:
+            II_items_feature = self.ii_propagate(self.II_propagation_graph_ori, self.items_feature, "II", None, test)
+            II_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, II_items_feature, "BI", test)
+            II_users_feature = self.aggregate(self.UI_aggregation_graph_ori, II_items_feature, "UI", test)
+        else:
+            II_items_feature = self.ii_propagate(self.II_propagation_graph, self.items_feature, "II", None, test)
+            II_bundles_feature = self.aggregate(self.BI_aggregation_graph, II_items_feature, "BI", test)
+            II_users_feature = self.aggregate(self.UI_aggregation_graph, II_items_feature, "UI", test)
         #  =============================  UB graph propagation  =============================
         if test:
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
@@ -335,8 +335,8 @@ class MultiCBR(nn.Module):
         bpr_loss = cal_bpr_loss(pred)
 
         # cl is abbr. of "contrastive loss"
-        u_view_cl = self.cal_c_loss(users_feature, users_feature)
-        b_view_cl = self.cal_c_loss(bundles_feature, bundles_feature)
+        u_view_cl = self.cal_topK_c_loss(users_feature, users_feature)
+        b_view_cl = self.cal_topK_c_loss(bundles_feature, bundles_feature)
 
         c_losses = [u_view_cl, b_view_cl]
 
@@ -364,11 +364,7 @@ class MultiCBR(nn.Module):
         users_embedding = users_rep[users].expand(-1, bundles.shape[1], -1)
         bundles_embedding = bundles_rep[bundles]
 
-        bpr_loss, _ = self.cal_loss(users_embedding, bundles_embedding)
-        c_users_topK_loss = self.cal_topK_c_loss(users_rep, users_rep)
-        c_bundles_topK_loss = self.cal_topK_c_loss(bundles_rep, bundles_rep)
-
-        c_loss = 1/2*(c_users_topK_loss + c_bundles_topK_loss)
+        bpr_loss, c_loss = self.cal_loss(users_embedding, bundles_embedding)
 
         return bpr_loss, c_loss
 
@@ -378,22 +374,21 @@ class MultiCBR(nn.Module):
         scores = torch.mm(users_feature[users], bundles_feature.t())
         return scores
     
-    def cal_topK_c_loss(self, eck, vck, kp=30, kn=30, threshold=5e-1):
+    def cal_topK_c_loss(self, pos, aug, kp=100, kn=1000, threshold=5e-1):
         '''
         contrastive loss for top k pairs
         kp: topk positive
         kn: topk negative
         '''
-        eck = F.normalize(eck, p=2, dim=1)
-        vck = F.normalize(vck, p=2, dim=1)
+        pos = F.normalize(pos[:, 0, :], p=2, dim=1)
+        aug = F.normalize(aug[:, 0, :], p=2, dim=1)
 
-        sim = eck @ vck.T
+        sim = pos @ aug.T
 
-        topk_pos = torch.topk(sim, kp, dim=1)
-        topk_neg = torch.topk(sim, kn, dim=1)
+        topK_p_set = torch.topk(sim, k=kp, dim=1)
+        topk_n_set = torch.topk(sim, k=kn, dim=1)
 
-        ep = torch.sum(torch.exp(topk_pos.values/self.c_temp), dim=1)
-        en = torch.sum(torch.exp(topk_neg.values/self.c_temp), dim=1)
-        
-        c_loss = -torch.mean(torch.log(ep / en))
-        return c_loss
+        pos_score = torch.sum(torch.exp(topK_p_set.values / self.c_temp))
+        neg_score = torch.sum(torch.exp(topk_n_set.values / self.c_temp))
+
+        return -torch.mean(torch.log(pos_score / neg_score))
