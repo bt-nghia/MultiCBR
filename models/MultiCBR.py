@@ -304,7 +304,7 @@ class MultiCBR(nn.Module):
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
 
-        return users_rep, bundles_rep, users_feature, bundles_feature
+        return users_rep, bundles_rep
 
 
     def cal_c_loss(self, pos, aug):
@@ -348,7 +348,7 @@ class MultiCBR(nn.Module):
         # users: [bs, 1]
         # bundles: [bs, 1+neg_num]
         users, bundles = batch
-        users_rep, bundles_rep, u_, b_ = self.get_multi_modal_representations()
+        users_rep, bundles_rep = self.get_multi_modal_representations()
 
         users_embedding = users_rep[users].expand(-1, bundles.shape[1], -1)
         bundles_embedding = bundles_rep[bundles]
