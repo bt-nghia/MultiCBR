@@ -95,7 +95,7 @@ Youshu:
 
   lrs: [1.0e-3]
   l2_regs: [1.0e-5]
-  c_lambdas: [0.04]
+  c_lambdas: [0.2]
   c_temps: [0.23]
 
   epochs: 200
