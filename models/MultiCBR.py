@@ -374,7 +374,7 @@ class MultiCBR(nn.Module):
         scores = torch.mm(users_feature[users], bundles_feature.t())
         return scores
     
-    def cal_topK_c_loss(self, pos, aug, kp=100, kn=1000, threshold=5e-1):
+    def cal_topK_c_loss(self, pos, aug, kp=100, kn=2000, threshold=5e-1):
         '''
         contrastive loss for top k pairs
         kp: topk positive
