@@ -225,12 +225,12 @@ class MultiCBR(nn.Module):
 
     def ii_propagate(self, ii_graph, i_feat, graph_type, layer_coef, test):
         all_features = [i_feat]
-        for i in range(self.num_layers):
+        for i in range(1):
             i_feat = torch.spmm(ii_graph, i_feat)
             all_features.append(F.normalize(i_feat, p=2, dim=1))
         all_features = torch.stack(all_features, dim=1)
         all_features = torch.sum(all_features, dim=1)
-        return all_features / self.num_layers
+        return all_features 
 
     def aggregate(self, agg_graph, node_feature, graph_type, test):
         aggregated_feature = torch.matmul(agg_graph, node_feature)
