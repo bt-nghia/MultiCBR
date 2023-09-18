@@ -143,11 +143,11 @@ class MultiCBR(nn.Module):
         Try init normal
         '''
         self.users_feature = nn.Parameter(torch.FloatTensor(self.num_users, self.embedding_size))
-        nn.init.normal_(self.users_feature)
+        nn.init.xavier_normal_(self.users_feature)
         self.bundles_feature = nn.Parameter(torch.FloatTensor(self.num_bundles, self.embedding_size))
-        nn.init.normal_(self.bundles_feature)
+        nn.init.xavier_normal_(self.bundles_feature)
         self.items_feature = nn.Parameter(torch.FloatTensor(self.num_items, self.embedding_size))
-        nn.init.normal_(self.items_feature)
+        nn.init.xavier_normal_(self.items_feature)
 
 
     def init_fusion_weights(self):
