@@ -56,9 +56,13 @@ def main():
     conf["device"] = device
     print(conf)
 
-    for lr, l2_reg, UB_ratio, UI_ratio, BI_ratio, II_ratio, UBI_ratio, embedding_size, num_layers, c_lambda, c_temp in \
+    for lr, l2_reg, \
+        UB_ratio, UI_ratio, BI_ratio, \
+        IBI_ratio, UBI_ratio, IUI_ratio, \
+        embedding_size, num_layers, c_lambda, c_temp in \
             product(conf['lrs'], conf['l2_regs'], 
-                    conf['UB_ratios'], conf['UI_ratios'], conf['BI_ratios'], conf['II_ratios'], conf["UBI_ratios"],
+                    conf['UB_ratios'], conf['UI_ratios'], conf['BI_ratios'], 
+                    conf['IBI_ratios'], conf["UBI_ratios"], conf["IUI_ratios"],
                     conf["embedding_sizes"], conf["num_layerss"], conf["c_lambdas"], conf["c_temps"]):
         log_path = "./log/%s/%s" % (conf["dataset"], conf["model"])
         run_path = "./runs/%s/%s" % (conf["dataset"], conf["model"])
@@ -92,10 +96,11 @@ def main():
         conf["UB_ratio"] = UB_ratio
         conf["UI_ratio"] = UI_ratio
         conf["BI_ratio"] = BI_ratio
-        conf["II_ratio"] = II_ratio
+        conf["IBI_ratio"] = IBI_ratio
         conf["UBI_ratio"] = UBI_ratio
+        conf["IUI_ratio"] = IUI_ratio
         conf["num_layers"] = num_layers
-        settings += [str(UB_ratio), str(UI_ratio), str(BI_ratio), str(II_ratio), str(UBI_ratio), str(num_layers)]
+        settings += [str(UB_ratio), str(UI_ratio), str(BI_ratio), str(IBI_ratio), str(UBI_ratio), str(IUI_ratio), str(num_layers)]
         settings += ["_".join([str(conf['fusion_weights']["modal_weight"]), str(conf['fusion_weights']["UB_layer"]),
                                str(conf['fusion_weights']["UI_layer"]), str(conf['fusion_weights']["BI_layer"]),
                                str(conf['fusion_weights']['UBI_layer'])])]

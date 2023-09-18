@@ -50,7 +50,7 @@ iFashion:
   UB_ratios: [0.05]
   UI_ratios: [0.0]
   BI_ratios: [0.15]
-  II_ratios: [0.1]
+  IBI_ratios: [0.1]
 
   fusion_weights:
     modal_weight: [0.1, 0.2, 0.7]
@@ -83,8 +83,9 @@ Youshu:
   UB_ratios: [0.2]
   UI_ratios: [0.1]
   BI_ratios: [0.1]
-  II_ratios: [0.1]
+  IBI_ratios: [0.1]
   UBI_ratios: [0.0]
+  IUI_ratios: [0.1]
 
   fusion_weights:
     modal_weight: [0.25, 0.00, 0.5, 0.25]
