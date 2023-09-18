@@ -186,7 +186,7 @@ class MultiCBR(nn.Module):
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
     
-    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=30):
+    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=0):
         propagation_graph = co_graph * (co_graph >= threshold)
 
         if modification_ratio != 0:
@@ -273,7 +273,7 @@ class MultiCBR(nn.Module):
         if test:
             IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IBI_layer_coefs, test)
             IUI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, IUI_items_feature, "UI", test)
-            IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "UI", test)
+            IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "BI", test)
         else:
             IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IBI_layer_coefs, test)
             IUI_users_feature = self.aggregate(self.UI_aggregation_graph, IUI_items_feature, "UI", test)
