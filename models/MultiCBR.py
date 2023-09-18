@@ -183,7 +183,7 @@ class MultiCBR(nn.Module):
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
     
-    def get_propagation_graph_ii(self, co_graph, modification_ratio=0):
+    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=0):
         propagation_graph = co_graph
 
         if modification_ratio != 0:
@@ -302,10 +302,10 @@ class MultiCBR(nn.Module):
 
         # ==============================  UBI graph propagation =============================
         if test:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, IUI_items_feature, "UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
         else:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, IUI_items_feature, "UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
 
 
