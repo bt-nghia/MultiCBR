@@ -155,7 +155,7 @@ class MultiCBR(nn.Module):
                 (len(self.fusion_weights['UI_layer']) == self.num_layers + 1) and\
                 (len(self.fusion_weights['BI_layer']) == self.num_layers + 1) and\
                 (len(self.fusion_weights['UBI_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['IBI_layer']) == self.num_layers + 1),\
+                (len(self.fusion_weights['IUI_layer']) == self.num_layers + 1),\
             "The number of layer fusion weights does not correspond to number of layers"
 
         modal_coefs = torch.FloatTensor(self.fusion_weights['modal_weight'])
@@ -163,7 +163,7 @@ class MultiCBR(nn.Module):
         UI_layer_coefs = torch.FloatTensor(self.fusion_weights['UI_layer'])
         BI_layer_coefs = torch.FloatTensor(self.fusion_weights['BI_layer'])
         UBI_layer_coefs = torch.FloatTensor(self.fusion_weights['UBI_layer'])
-        IBI_layer_coefs = torch.FloatTensor(self.fusion_weights['IBI_layer'])
+        IUI_layer_coefs = torch.FloatTensor(self.fusion_weights['IUI_layer'])
 
         self.modal_coefs = modal_coefs.unsqueeze(-1).unsqueeze(-1).to(self.device)
 
@@ -171,7 +171,7 @@ class MultiCBR(nn.Module):
         self.UI_layer_coefs = UI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.BI_layer_coefs = BI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.UBI_layer_coefs = UBI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
-        self.IBI_layer_coefs = IBI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
+        self.IUI_layer_coefs = IUI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
 
 
     def get_propagation_graph(self, bipartite_graph, modification_ratio=0):
@@ -271,11 +271,11 @@ class MultiCBR(nn.Module):
     def get_multi_modal_representations(self, test=False):
         # ==============================  IUI graph propagation  ============================
         if test:
-            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IBI_layer_coefs, test)
+            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IUI_layer_coefs, test)
             IUI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, IUI_items_feature, "UI", test)
             IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "BI", test)
         else:
-            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IBI_layer_coefs, test)
+            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IUI_layer_coefs, test)
             IUI_users_feature = self.aggregate(self.UI_aggregation_graph, IUI_items_feature, "UI", test)
             IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph, IUI_items_feature, "BI", test)
 
