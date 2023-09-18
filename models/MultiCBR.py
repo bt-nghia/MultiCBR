@@ -186,7 +186,7 @@ class MultiCBR(nn.Module):
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
     
-    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=0):
+    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=20):
         propagation_graph = co_graph * (co_graph >= threshold)
 
         if modification_ratio != 0:
