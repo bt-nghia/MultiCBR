@@ -139,12 +139,15 @@ class MultiCBR(nn.Module):
 
 
     def init_emb(self):
+        '''
+        Try init normal
+        '''
         self.users_feature = nn.Parameter(torch.FloatTensor(self.num_users, self.embedding_size))
-        nn.init.xavier_normal_(self.users_feature)
+        nn.init.normal_(self.users_feature)
         self.bundles_feature = nn.Parameter(torch.FloatTensor(self.num_bundles, self.embedding_size))
-        nn.init.xavier_normal_(self.bundles_feature)
+        nn.init.normal_(self.bundles_feature)
         self.items_feature = nn.Parameter(torch.FloatTensor(self.num_items, self.embedding_size))
-        nn.init.xavier_normal_(self.items_feature)
+        nn.init.normal_(self.items_feature)
 
 
     def init_fusion_weights(self):
@@ -269,15 +272,15 @@ class MultiCBR(nn.Module):
 
 
     def get_multi_modal_representations(self, test=False):
-        # ==============================  IUI graph propagation  ============================
-        if test:
-            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IUI_layer_coefs, test)
-            IUI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, IUI_items_feature, "UI", test)
-            IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "BI", test)
-        else:
-            IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IUI_layer_coefs, test)
-            IUI_users_feature = self.aggregate(self.UI_aggregation_graph, IUI_items_feature, "UI", test)
-            IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph, IUI_items_feature, "BI", test)
+        # # ==============================  IUI graph propagation  ============================
+        # if test:
+        #     IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IUI_layer_coefs, test)
+        #     IUI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, IUI_items_feature, "UI", test)
+        #     IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "BI", test)
+        # else:
+        #     IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IUI_layer_coefs, test)
+        #     IUI_users_feature = self.aggregate(self.UI_aggregation_graph, IUI_items_feature, "UI", test)
+        #     IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph, IUI_items_feature, "BI", test)
 
         # # ==============================  IBI graph propagation  ============================
         # if test:
@@ -301,10 +304,10 @@ class MultiCBR(nn.Module):
 
         #  =============================  BI graph propagation  =============================
         if test:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, IUI_items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, BI_items_feature, "UI", test)
         else:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, IUI_items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
         # ==============================  UBI graph propagation =============================
