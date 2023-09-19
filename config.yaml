@@ -15,6 +15,9 @@ NetEase:
   UB_ratios: [0.0] # the dropout ratio for UB graph
   UI_ratios: [0.0] # the dropout ratio for UI graph
   BI_ratios: [0.2] # the dropout ratio for BI graph
+  IBI_ratios: [0.1]
+  UBI_ratios: [0.0]
+  IUI_ratios: [0.1]
 
   fusion_weights:
     # fusion weight for representations of different graphs
@@ -24,6 +27,9 @@ NetEase:
     UB_layer: [0.35, 0.15, 0.5] # layer aggregation coefficients in UB graph
     UI_layer: [0.25, 0.65, 0.1] # layer aggregation coefficients in UI graph
     BI_layer: [0.4, 0.4, 0.2] # layer aggregation coefficients in BI graph
+    UBI_layer: [0.6, 0.2, 0.2]
+    IBI_layer: [0.8, 0.2, 0.0]
+    IUI_layer: [0.8, 0.2, 0.0]
 
   lrs: [1.0e-3] # learning rate
   l2_regs: [1.0e-5] # the l2 regularization weight: lambda_2
