@@ -69,11 +69,11 @@ class MultiCBR(nn.Module):
         self.ub_graph, self.ui_graph, self.bi_graph = raw_graph
 
         #item co-ocurence graph
-        self.ibi_graph = self.bi_graph.T @ self.bi_graph
+        # self.ibi_graph = self.bi_graph.T @ self.bi_graph
         self.ubi_graph = self.ub_graph @ self.bi_graph
-        self.iui_graph = self.ui_graph.T @ self.ui_graph
-        self.ubu_graph = self.ub_graph @ self.ub_graph.T
-        self.uiu_graph = self.ui_graph @ self.ui_graph.T
+        # self.iui_graph = self.ui_graph.T @ self.ui_graph
+        # self.ubu_graph = self.ub_graph @ self.ub_graph.T
+        # self.uiu_graph = self.ui_graph @ self.ui_graph.T
         
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
@@ -84,12 +84,12 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
 
-        self.IBI_propagation_graph_ori = self.get_self_propagation_graph(self.ibi_graph)
+        # self.IBI_propagation_graph_ori = self.get_self_propagation_graph(self.ibi_graph)
         self.UBI_propagation_graph_ori = self.get_propagation_graph(self.ubi_graph)
-        self.IUI_propagation_graph_ori = self.get_self_propagation_graph(self.iui_graph)
+        # self.IUI_propagation_graph_ori = self.get_self_propagation_graph(self.iui_graph)
         
-        self.UIU_propagation_graph_ori = self.get_self_propagation_graph(self.uiu_graph)
-        self.UBU_propagation_graph_ori = self.get_self_propagation_graph(self.ubu_graph)
+        # self.UIU_propagation_graph_ori = self.get_self_propagation_graph(self.uiu_graph)
+        # self.UBU_propagation_graph_ori = self.get_self_propagation_graph(self.ubu_graph)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
@@ -100,12 +100,12 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
 
-        self.IBI_propagation_graph = self.get_self_propagation_graph(self.ibi_graph, self.conf["IBI_ratio"])
+        # self.IBI_propagation_graph = self.get_self_propagation_graph(self.ibi_graph, self.conf["IBI_ratio"])
         self.UBI_propagation_graph = self.get_propagation_graph(self.ubi_graph, self.conf["UBI_ratio"])
-        self.IUI_propagation_graph = self.get_self_propagation_graph(self.iui_graph, self.conf["IUI_ratio"])
+        # self.IUI_propagation_graph = self.get_self_propagation_graph(self.iui_graph, self.conf["IUI_ratio"])
 
-        self.UIU_propagation_graph = self.get_self_propagation_graph(self.uiu_graph, 0)
-        self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
+        # self.UIU_propagation_graph = self.get_self_propagation_graph(self.uiu_graph, 0)
+        # self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -175,7 +175,7 @@ class MultiCBR(nn.Module):
         UI_layer_coefs = torch.FloatTensor(self.fusion_weights['UI_layer'])
         BI_layer_coefs = torch.FloatTensor(self.fusion_weights['BI_layer'])
         UBI_layer_coefs = torch.FloatTensor(self.fusion_weights['UBI_layer'])
-        IUI_layer_coefs = torch.FloatTensor(self.fusion_weights['IUI_layer'])
+        # IUI_layer_coefs = torch.FloatTensor(self.fusion_weights['IUI_layer'])
 
         self.modal_coefs = modal_coefs.unsqueeze(-1).unsqueeze(-1).to(self.device)
 
@@ -183,7 +183,7 @@ class MultiCBR(nn.Module):
         self.UI_layer_coefs = UI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.BI_layer_coefs = BI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.UBI_layer_coefs = UBI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
-        self.IUI_layer_coefs = IUI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
+        # self.IUI_layer_coefs = IUI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
 
 
     def get_propagation_graph(self, bipartite_graph, modification_ratio=0):
