@@ -80,9 +80,9 @@ Youshu:
   embedding_sizes: [64]
   num_layerss: [2]
 
-  UB_ratios: [0.2]
+  UB_ratios: [0.0] # default 0.2
   UI_ratios: [0.1]
-  BI_ratios: [0.0]
+  BI_ratios: [0.0] # default 0.1
   IBI_ratios: [0.1]
   UBI_ratios: [0.0]
   IUI_ratios: [0.1]
