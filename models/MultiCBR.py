@@ -71,7 +71,10 @@ class MultiCBR(nn.Module):
         #item co-ocurence graph
         self.ibi_graph = self.bi_graph.T @ self.bi_graph
         self.ubi_graph = self.ub_graph @ self.bi_graph
-        self.iui_graph = self.ui_graph.T @ self.ui_graph 
+        self.iui_graph = self.ui_graph.T @ self.ui_graph
+        self.ubu_graph = self.ub_graph @ self.ub_graph.T
+        self.uiu_graph = self.ui_graph @ self.ui_graph.T
+        
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
 
@@ -81,9 +84,12 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
 
-        self.IBI_propagation_graph_ori = self.get_propagation_graph_ii(self.ibi_graph)
+        self.IBI_propagation_graph_ori = self.get_self_propagation_graph(self.ibi_graph)
         self.UBI_propagation_graph_ori = self.get_propagation_graph(self.ubi_graph)
-        self.IUI_propagation_graph_ori = self.get_propagation_graph_ii(self.iui_graph)
+        self.IUI_propagation_graph_ori = self.get_self_propagation_graph(self.iui_graph)
+        
+        self.UIU_propagation_graph_ori = self.get_self_propagation_graph(self.uiu_graph)
+        self.UBU_propagation_graph_ori = self.get_self_propagation_graph(self.ubu_graph)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
@@ -94,9 +100,12 @@ class MultiCBR(nn.Module):
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
 
-        self.IBI_propagation_graph = self.get_propagation_graph_ii(self.ibi_graph, self.conf["IBI_ratio"])
+        self.IBI_propagation_graph = self.get_self_propagation_graph(self.ibi_graph, self.conf["IBI_ratio"])
         self.UBI_propagation_graph = self.get_propagation_graph(self.ubi_graph, self.conf["UBI_ratio"])
-        self.IUI_propagation_graph = self.get_propagation_graph_ii(self.iui_graph, self.conf["IUI_ratio"])
+        self.IUI_propagation_graph = self.get_self_propagation_graph(self.iui_graph, self.conf["IUI_ratio"])
+
+        self.UIU_propagation_graph = self.get_self_propagation_graph(self.uiu_graph, 0)
+        self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -189,7 +198,7 @@ class MultiCBR(nn.Module):
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
     
-    def get_propagation_graph_ii(self, co_graph, modification_ratio=0, threshold=20):
+    def get_self_propagation_graph(self, co_graph, modification_ratio=0, threshold=20):
         propagation_graph = co_graph * (co_graph >= threshold)
 
         if modification_ratio != 0:
