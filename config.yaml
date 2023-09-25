@@ -109,3 +109,36 @@ Youshu:
 
   epochs: 200
   test_interval: 1
+
+
+iFashion_sample:
+  data_path: './datasets'
+  batch_size_train: 12000
+  batch_size_test: 1024
+  topk: [10, 20, 40, 80]
+  neg_num: 1
+
+  # the following are the best settings
+  aug_type: "Noise"
+  ed_interval: 1
+  embedding_sizes: [64]
+  num_layerss: [2]
+
+  UB_ratios: [0.05]
+  UI_ratios: [0.0]
+  BI_ratios: [0.15]
+  IBI_ratios: [0.1]
+
+  fusion_weights:
+    modal_weight: [0.1, 0.2, 0.7]
+    UB_layer: [0.5, 0.5, 0.0]
+    UI_layer: [0.3, 0.2, 0.5]
+    BI_layer: [0.5, 0.5, 0.0]
+
+  lrs: [1.0e-3]
+  l2_regs: [1.0e-5]
+  c_lambdas: [0.1]
+  c_temps: [0.2]
+
+  epochs: 100
+  test_interval: 1
