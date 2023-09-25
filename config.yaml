@@ -111,7 +111,7 @@ Youshu:
   test_interval: 1
 
 
-iFashion_sample:
+iFashion2:
   data_path: './datasets'
   batch_size_train: 12000
   batch_size_test: 1024
@@ -128,12 +128,17 @@ iFashion_sample:
   UI_ratios: [0.0]
   BI_ratios: [0.15]
   IBI_ratios: [0.1]
+  UBI_ratios: [0.0]
+  IUI_ratios: [0.1]
 
   fusion_weights:
-    modal_weight: [0.1, 0.2, 0.7]
+    modal_weight: [0.1, 0.2, 0.7, 0.0]
     UB_layer: [0.5, 0.5, 0.0]
     UI_layer: [0.3, 0.2, 0.5]
     BI_layer: [0.5, 0.5, 0.0]
+    UBI_layer: [0.6, 0.2, 0.2]
+    IBI_layer: [0.8, 0.2, 0.0]
+    IUI_layer: [0.8, 0.2, 0.0]
 
   lrs: [1.0e-3]
   l2_regs: [1.0e-5]

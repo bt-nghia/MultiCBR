@@ -1,1 +1,1 @@
-python train.py -m MultiCBR -d Youshu
+python train.py -m MultiCBR -d iFashion2
