@@ -109,7 +109,7 @@ class MultiCBR(nn.Module):
         # self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
 
         self.gat_convs = nn.ModuleList(
-            [GATConv(self.embedding_size, self.embedding_size, head=1, dropout=0.1)] for _ in range(self.num_layers))
+            GATConv(self.embedding_size, self.embedding_size, head=1, dropout=0.1) for _ in range(self.num_layers))
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
