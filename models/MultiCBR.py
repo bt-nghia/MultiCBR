@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import scipy.sparse as sp 
+from torch_geometric.nn import GATv2Conv, GATConv
 
 
 def cal_bpr_loss(pred):
@@ -106,6 +107,9 @@ class MultiCBR(nn.Module):
 
         # self.UIU_propagation_graph = self.get_self_propagation_graph(self.uiu_graph, 0)
         # self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
+
+        self.gat_convs = nn.ModuleList(
+            [GATConv(self.embedding_size, self.embedding_size, head=1, dropout=0.1)] for _ in range(self.num_layers))
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -278,6 +282,18 @@ class MultiCBR(nn.Module):
         bundles_rep = torch.sum(bundles_feature * self.modal_coefs, dim=0)
 
         return users_rep, bundles_rep
+    
+    def bi_propagate(self, bundle_feature, item_feature, edge, layer_coefs):
+        edge[1:] = edge[1:] + self.num_bundles
+        feat = torch.concat([bundle_feature, item_feature], dim=0)
+        feats = [feat]
+        for conv in self.gat_convs:
+            feat = conv(feat, edge)
+            feats.append(feat)
+        feats = torch.stack(feats, dim=1) * layer_coefs
+        feats = torch.sum(feats, dim=1)
+        bundle_feature, item_feature = torch.split([self.num_bundles, self.num_items], dim=0)
+        return bundle_feature, item_feature
 
 
     def get_multi_modal_representations(self, test=False):

@@ -132,10 +132,10 @@ iFashion2:
   IUI_ratios: [0.1]
 
   fusion_weights:
-    modal_weight: [0.1, 0.2, 0.7, 0.0]
-    UB_layer: [0.5, 0.5, 0.0]
-    UI_layer: [0.3, 0.2, 0.5]
-    BI_layer: [0.5, 0.5, 0.0]
+    modal_weight: [0.25, 0.0, 0.5, 0.25]
+    UB_layer: [0.7, 0.2, 0.1]
+    UI_layer: [0.6, 0.2, 0.2]
+    BI_layer: [0.6, 0.1, 0.3]
     UBI_layer: [0.6, 0.2, 0.2]
     IBI_layer: [0.8, 0.2, 0.0]
     IUI_layer: [0.8, 0.2, 0.0]
@@ -145,5 +145,5 @@ iFashion2:
   c_lambdas: [0.1]
   c_temps: [0.2]
 
-  epochs: 100
+  epochs: 60
   test_interval: 1
