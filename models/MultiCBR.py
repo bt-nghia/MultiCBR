@@ -116,6 +116,9 @@ class MultiCBR(nn.Module):
         elif self.conf['aug_type'] == "Noise":
             self.init_noise_eps()
 
+        self.u_mlp = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
+        self.b_mlp = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
+
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -348,6 +351,8 @@ class MultiCBR(nn.Module):
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature, UBI_bundles_feature]
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
+        users_rep = self.u_mlp(users_rep)
+        bundles_rep = self.u_mlp(bundles_rep)
 
         return users_rep, bundles_rep
 

@@ -31,4 +31,4 @@ user_bundle_tune.to_csv(osp.join(cur_dir, 'user_bundle_tune.txt'), index=False, 
 user_item.to_csv(osp.join(cur_dir, 'user_item.txt'), index=False, header=False, sep='\t')
 
 shutil.copy(osp.join(dir, 'bundle_item.txt'), osp.join(cur_dir, 'bundle_item.txt'))
-shutil.copy(osp.join(dir, 'iFashion_data_size.txt'), osp.join(cur_dir, 'iFashion_data_size.txt'))
+shutil.copy(osp.join(dir, 'iFashion_data_size.txt'), osp.join(cur_dir, 'iFashion2_data_size.txt'))
