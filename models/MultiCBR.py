@@ -148,9 +148,7 @@ class MultiCBR(nn.Module):
 
         assert  (len(self.fusion_weights['UB_layer']) == self.num_layers + 1) and\
                 (len(self.fusion_weights['UI_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['BI_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['UBI_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['IUI_layer']) == self.num_layers + 1),\
+                (len(self.fusion_weights['BI_layer']) == self.num_layers + 1),\
             "The number of layer fusion weights does not correspond to number of layers"
 
         modal_coefs = torch.FloatTensor(self.fusion_weights['modal_weight'])
