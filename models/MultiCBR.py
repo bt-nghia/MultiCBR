@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import scipy.sparse as sp 
-from torch_geometric.nn import GATv2Conv, GATConv
 
 
 def cal_bpr_loss(pred):
@@ -78,55 +77,24 @@ class MultiCBR(nn.Module):
         
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
-
         self.UI_propagation_graph_ori = self.get_propagation_graph(self.ui_graph)
         self.UI_aggregation_graph_ori = self.get_aggregation_graph(self.ui_graph)
-
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
-
-        # self.IBI_propagation_graph_ori = self.get_self_propagation_graph(self.ibi_graph)
         self.UBI_propagation_graph_ori = self.get_propagation_graph(self.ubi_graph)
-        # self.IUI_propagation_graph_ori = self.get_self_propagation_graph(self.iui_graph)
-        
-        # self.UIU_propagation_graph_ori = self.get_self_propagation_graph(self.uiu_graph)
-        # self.UBU_propagation_graph_ori = self.get_self_propagation_graph(self.ubu_graph)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
-
         self.UI_propagation_graph = self.get_propagation_graph(self.ui_graph, self.conf["UI_ratio"])
         self.UI_aggregation_graph = self.get_aggregation_graph(self.ui_graph, self.conf["UI_ratio"])
-
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
-
-        # self.IBI_propagation_graph = self.get_self_propagation_graph(self.ibi_graph, self.conf["IBI_ratio"])
         self.UBI_propagation_graph = self.get_propagation_graph(self.ubi_graph, self.conf["UBI_ratio"])
-        # self.IUI_propagation_graph = self.get_self_propagation_graph(self.iui_graph, self.conf["IUI_ratio"])
-
-        # self.UIU_propagation_graph = self.get_self_propagation_graph(self.uiu_graph, 0)
-        # self.UBU_propagation_graph = self.get_self_propagation_graph(self.ubu_graph, 0)
-
-        self.gat_convs = nn.ModuleList(
-            GATConv(self.embedding_size, self.embedding_size, head=1, dropout=0.1) for _ in range(self.num_layers))
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
         elif self.conf['aug_type'] == "Noise":
             self.init_noise_eps()
-
-        self.pre_graph_mlp1 = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
-        self.pre_graph_mlp2 = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
-        self.pre_graph_mlp3 = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
-
-        # add linear layer
-        self.dropout1 = nn.Dropout(p=0.1)
-        self.dropout2 = nn.Dropout(p=0.1)
-        self.dropout3 = nn.Dropout(p=0.1)
-        self.u_mlp = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
-        self.b_mlp = nn.Linear(self.embedding_size, self.embedding_size, bias=True)
-
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -308,61 +276,36 @@ class MultiCBR(nn.Module):
 
 
     def get_multi_modal_representations(self, test=False):
-        # # ==============================  IUI graph propagation  ============================
-        # if test:
-        #     IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph_ori, self.items_feature, "IUI", self.IUI_layer_coefs, test)
-        #     IUI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, IUI_items_feature, "UI", test)
-        #     IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, IUI_items_feature, "BI", test)
-        # else:
-        #     IUI_items_feature = self.ii_propagate(self.IUI_propagation_graph, self.items_feature, "IUI", self.IUI_layer_coefs, test)
-        #     IUI_users_feature = self.aggregate(self.UI_aggregation_graph, IUI_items_feature, "UI", test)
-        #     IUI_bundles_feature = self.aggregate(self.BI_aggregation_graph, IUI_items_feature, "BI", test)
-
-        # # ==============================  IBI graph propagation  ============================
-        # if test:
-        #     IBI_items_feature = self.ii_propagate(self.IBI_propagation_graph_ori, self.items_feature, "IBI", None, test)
-        # else:
-        #     IBI_items_feature = self.ii_propagate(self.IBI_propagation_graph, self.items_feature, "IBI", None, test)
-        temp_u = self.dropout1(self.pre_graph_mlp1(self.users_feature))
-        temp_b = self.dropout2(self.pre_graph_mlp2(self.bundles_feature))
-        temp_i = self.dropout3(self.pre_graph_mlp3(self.items_feature))
-
         #  =============================  UB graph propagation  =============================
         if test:
             # UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
-            UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, temp_u, temp_b, "UB", self.UB_layer_coefs, test)
+            UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
         else:
             # UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
-            UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, temp_u, temp_b, "UB", self.UB_layer_coefs, test)
+            UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
 
         #  =============================  UI graph propagation  =============================
         if test:
-            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, temp_u, temp_i, "UI", self.UI_layer_coefs, test)
-            # UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
+            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UI_items_feature, "BI", test)
         else:
-            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph, temp_u, temp_i, "UI", self.UI_layer_coefs, test)
-            # UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
+            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UI_items_feature, "BI", test)
 
         #  =============================  BI graph propagation  =============================
         if test:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, temp_b, temp_i, "BI", self.BI_layer_coefs, test)
-            # BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, BI_items_feature, "UI", test)
         else:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, temp_b, temp_i, "BI", self.BI_layer_coefs, test)
-            # BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
         # ==============================  UBI graph propagation =============================
         if test:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, temp_u, temp_i, "UBI", self.UBI_layer_coefs, test)
-            # UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature,"UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature,"UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
         else:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, temp_u, temp_i, "UBI", self.UBI_layer_coefs, test)
-            # UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
             UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
 
 
@@ -370,9 +313,6 @@ class MultiCBR(nn.Module):
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature, UBI_bundles_feature]
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
-        # users_rep = self.u_mlp(users_rep)
-        # bundles_rep = self.u_mlp(bundles_rep)
-
         return users_rep, bundles_rep
 
 
