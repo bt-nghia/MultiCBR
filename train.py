@@ -13,6 +13,7 @@ import torch
 import torch.optim as optim
 from utility import Datasets
 from models.MultiCBR import MultiCBR
+import numpy as np
 
 
 def get_cmd():
@@ -50,6 +51,10 @@ def main():
     conf["num_users"] = dataset.num_users
     conf["num_bundles"] = dataset.num_bundles
     conf["num_items"] = dataset.num_items
+    
+    torch.manual_seed(2023)
+    np.random.seed(2023)
+
 
     os.environ['CUDA_VISIBLE_DEVICES'] = conf["gpu"]
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
