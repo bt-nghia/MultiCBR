@@ -69,11 +69,7 @@ class MultiCBR(nn.Module):
         self.ub_graph, self.ui_graph, self.bi_graph = raw_graph
 
         #item co-ocurence graph
-        # self.ibi_graph = self.bi_graph.T @ self.bi_graph
         self.ubi_graph = self.ub_graph @ self.bi_graph
-        # self.iui_graph = self.ui_graph.T @ self.ui_graph
-        # self.ubu_graph = self.ub_graph @ self.ub_graph.T
-        # self.uiu_graph = self.ui_graph @ self.ui_graph.T
         
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
@@ -81,7 +77,6 @@ class MultiCBR(nn.Module):
         self.UI_aggregation_graph_ori = self.get_aggregation_graph(self.ui_graph)
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
-        self.UBI_propagation_graph_ori = self.get_propagation_graph(self.ubi_graph)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
@@ -89,7 +84,6 @@ class MultiCBR(nn.Module):
         self.UI_aggregation_graph = self.get_aggregation_graph(self.ui_graph, self.conf["UI_ratio"])
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
-        self.UBI_propagation_graph = self.get_propagation_graph(self.ubi_graph, self.conf["UBI_ratio"])
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
@@ -100,16 +94,10 @@ class MultiCBR(nn.Module):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
         self.UI_dropout = nn.Dropout(self.conf["UI_ratio"], True)
         self.BI_dropout = nn.Dropout(self.conf["BI_ratio"], True)
-        self.IBI_dropout = nn.Dropout(self.conf["IBI_ratio"], True)
-        self.UBI_dropout = nn.Dropout(self.conf["UBI_ratio"], True)
-        self.IUI_dropout = nn.Dropout(self.conf["IUI_ratio"], True)
         self.mess_dropout_dict = {
             "UB": self.UB_dropout,
             "UI": self.UI_dropout,
             "BI": self.BI_dropout,
-            "IBI": self.IBI_dropout,
-            "UBI": self.UBI_dropout,
-            "IUI": self.IUI_dropout
         }
 
 
@@ -117,16 +105,10 @@ class MultiCBR(nn.Module):
         self.UB_eps = self.conf["UB_ratio"]
         self.UI_eps = self.conf["UI_ratio"]
         self.BI_eps = self.conf["BI_ratio"]
-        self.IBI_eps = self.conf["IBI_ratio"]
-        self.UBI_eps = self.conf["UBI_ratio"]
-        self.IUI_eps = self.conf["IUI_ratio"]
         self.eps_dict = {
             "UB": self.UB_eps,
             "UI": self.UI_eps,
             "BI": self.BI_eps,
-            "IBI": self.IBI_eps,
-            "UBI": self.UBI_eps,
-            "IUI": self.IUI_eps,
         }
 
 
@@ -143,7 +125,7 @@ class MultiCBR(nn.Module):
 
 
     def init_fusion_weights(self):
-        assert (len(self.fusion_weights['modal_weight']) == 4), \
+        assert (len(self.fusion_weights['modal_weight']) == 3), \
             "The number of modal fusion weights does not correspond to the number of graphs"
 
         assert  (len(self.fusion_weights['UB_layer']) == self.num_layers + 1) and\
@@ -155,16 +137,12 @@ class MultiCBR(nn.Module):
         UB_layer_coefs = torch.FloatTensor(self.fusion_weights['UB_layer'])
         UI_layer_coefs = torch.FloatTensor(self.fusion_weights['UI_layer'])
         BI_layer_coefs = torch.FloatTensor(self.fusion_weights['BI_layer'])
-        UBI_layer_coefs = torch.FloatTensor(self.fusion_weights['UBI_layer'])
-        # IUI_layer_coefs = torch.FloatTensor(self.fusion_weights['IUI_layer'])
 
         self.modal_coefs = modal_coefs.unsqueeze(-1).unsqueeze(-1).to(self.device)
 
         self.UB_layer_coefs = UB_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.UI_layer_coefs = UI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
         self.BI_layer_coefs = BI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
-        self.UBI_layer_coefs = UBI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
-        # self.IUI_layer_coefs = IUI_layer_coefs.unsqueeze(0).unsqueeze(-1).to(self.device)
 
 
     def get_propagation_graph(self, bipartite_graph, modification_ratio=0):
@@ -299,16 +277,16 @@ class MultiCBR(nn.Module):
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
         # ==============================  UBI graph propagation =============================
-        if test:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature,"UBI", self.UBI_layer_coefs, test)
-            UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
-        else:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
-            UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
+        # if test:
+        #     UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature,"UBI", self.UBI_layer_coefs, test)
+        #     UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
+        # else:
+        #     UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+        #     UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
 
 
-        users_feature = [UB_users_feature, UI_users_feature, BI_users_feature, UBI_users_feature]
-        bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature, UBI_bundles_feature]
+        users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
+        bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
         return users_rep, bundles_rep
