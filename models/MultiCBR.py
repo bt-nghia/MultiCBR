@@ -269,19 +269,23 @@ class MultiCBR(nn.Module):
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
 
         #  =============================  UI graph propagation  =============================
+        item_feat1, _ = self.iui_asym(self.items_feature, self.iui_edge_index, return_attention_weights=True)
+        item_feat1 = self.items_feature * 0.2 + item_feat1 * 0.8
         if test:
-            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
+            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, self.users_feature, item_feat1, "UI", self.UI_layer_coefs, test)
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UI_items_feature, "BI", test)
         else:
-            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
+            UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph, self.users_feature, item_feat1, "UI", self.UI_layer_coefs, test)
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UI_items_feature, "BI", test)
 
         #  =============================  BI graph propagation  =============================
+        item_feat2, _ = self.ibi_asym(self.items_feature, self.ibi_edge_index, return_attention_weights=True)
+        item_feat2 = self.items_feature * 0.2 + item_feat2 * 0.8
         if test:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, item_feat2, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, BI_items_feature, "UI", test)
         else:
-            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
+            BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, item_feat2, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
         # ==============================  UBI graph propagation =============================
