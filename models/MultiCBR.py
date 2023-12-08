@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import scipy.sparse as sp 
-
+from models.AsymModule import *
 
 def cal_bpr_loss(pred):
     # pred: [bs, 1+neg_num]
@@ -89,6 +89,14 @@ class MultiCBR(nn.Module):
             self.init_md_dropouts()
         elif self.conf['aug_type'] == "Noise":
             self.init_noise_eps()
+
+        self.n_head = 2
+        self.a_self_loop = False
+        self.extra_layer = True
+        self.ibi_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_ibi.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
+        self.iui_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_iui.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
+        self.iui_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
+        self.ibi_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -373,3 +381,37 @@ class MultiCBR(nn.Module):
 
         return -torch.mean(torch.log(pos_score / neg_score))
     
+
+class Amatrix(nn.Module):
+    def __init__(self, in_dim, out_dim, n_layer=1, dropout=0.0, heads=2, concat=False, self_loop=True, extra_layer=False):
+        super(Amatrix, self).__init__()
+        self.num_layer = n_layer
+        self.dropout = dropout
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.heads = heads
+        self.concat = concat
+        self.self_loop = self_loop
+        self.extra_layer = extra_layer
+        self.convs = nn.ModuleList([AsymMatrix(in_channels=self.in_dim, 
+                                              out_channels=self.out_dim, 
+                                              dropout=self.dropout,
+                                              heads=self.heads,
+                                              concat=self.concat,
+                                              add_self_loops=self.self_loop,
+                                              extra_layer=self.extra_layer) 
+                                              for _ in range(self.num_layer)])
+
+
+    def forward(self, x, edge_index, return_attention_weights=True):
+        feats = [x]
+        attns = []
+
+        for conv in self.convs:
+            x, attn = conv(x, edge_index, return_attention_weights=return_attention_weights)
+            feats.append(x)
+            attns.append(attn)
+
+        feat = torch.stack(feats, dim=1)
+        x = torch.mean(feat, dim=1)
+        return x, attns
