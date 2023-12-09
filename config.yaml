@@ -98,5 +98,5 @@ Youshu:
   c_lambdas: [0.04]
   c_temps: [0.23]
 
-  epochs: 200
+  epochs: 180
   test_interval: 1

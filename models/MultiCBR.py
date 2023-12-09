@@ -98,8 +98,11 @@ class MultiCBR(nn.Module):
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
         elif self.conf['aug_type'] == "Noise":
-            self.init_noise_eps()
+            self.init_noise_eps()   
 
+        self.ibi_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_ibi.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
+        self.iui_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_iui.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
+        self.bs = 4096
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -366,8 +369,18 @@ class MultiCBR(nn.Module):
 
         bpr_loss, c_loss = self.cal_loss(users_embedding, bundles_embedding)
 
-        return bpr_loss, c_loss
+        ids = torch.randperm(self.ibi_edge_index.shape[1])
+        ids = self.ibi_edge_index[:,ids]
+        ids = ids[:,:self.bs]
 
+        # print(ids.shape)
+
+        item_feat1 = self.items_feature[ids[0]]
+        item_feat2 = self.items_feature[ids[1]]
+        cosine_loss = self.cal_cosine_loss(item_feat1, item_feat2)
+
+        return bpr_loss, c_loss + cosine_loss * 0.02
+    
 
     def evaluate(self, propagate_result, users):
         users_feature, bundles_feature = propagate_result
@@ -394,3 +407,18 @@ class MultiCBR(nn.Module):
         
         c_loss = -torch.mean(torch.log(ep / en))
         return c_temp * c_loss
+
+
+    def cal_cosine_loss(self, feat1, feat2):
+        '''
+        feat1 [batch_size, n_dim]
+        feat2 [batch_size, n_dim]
+        maximize cosine similarity between 2 item have dege
+        return cosine similarity [batchsize,1]
+        '''
+        bs = feat1.shape[0]
+        sum_dot_prod = torch.sum(feat1 * feat2, dim=1).view(bs, 1)
+        norm1 = torch.sqrt(torch.sum(feat1 * feat1, dim=1)).view(bs, 1)
+        norm2 = torch.sqrt(torch.sum(feat2 * feat2, dim=1)).view(bs, 1)
+
+        return -torch.mean(sum_dot_prod / norm1 / norm2)
