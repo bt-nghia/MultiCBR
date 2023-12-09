@@ -97,7 +97,7 @@ class MultiCBR(nn.Module):
         self.iui_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_iui.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
         self.iui_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
         self.ibi_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
-        self.bs = 2048
+        self.bs = 4096
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
