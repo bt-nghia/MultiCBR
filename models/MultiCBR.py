@@ -97,6 +97,7 @@ class MultiCBR(nn.Module):
         self.iui_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_iui.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
         self.iui_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
         self.ibi_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
+        self.bs = 2048
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -334,7 +335,14 @@ class MultiCBR(nn.Module):
         c_losses = [u_view_cl, b_view_cl]
         c_loss = sum(c_losses) / len(c_losses)
 
-        return bpr_loss, c_loss
+        ids = torch.randperm(self.ibi_edge_index.shape[1])
+        ids = ids[:self.bs]
+
+        item_feat1 = self.items_feature[self.ibi_edge_index[:,ids]]
+        item_feat2 = self.items_feature[self.ibi_edge_index[:,ids]]
+        cosine_loss = self.cal_cosine_loss(item_feat1, item_feat2)
+
+        return bpr_loss, c_loss + cosine_loss * 0.02
 
 
     def forward(self, batch, ED_drop=False):
