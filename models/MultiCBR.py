@@ -336,10 +336,13 @@ class MultiCBR(nn.Module):
         c_loss = sum(c_losses) / len(c_losses)
 
         ids = torch.randperm(self.ibi_edge_index.shape[1])
-        ids = ids[:self.bs]
+        ids = self.ibi_edge_index[:,ids]
+        ids = ids[:,:self.bs]
 
-        item_feat1 = self.items_feature[self.ibi_edge_index[:,ids]]
-        item_feat2 = self.items_feature[self.ibi_edge_index[:,ids]]
+        # print(ids.shape)
+
+        item_feat1 = self.items_feature[ids[0]]
+        item_feat2 = self.items_feature[ids[1]]
         cosine_loss = self.cal_cosine_loss(item_feat1, item_feat2)
 
         return bpr_loss, c_loss + cosine_loss * 0.02
