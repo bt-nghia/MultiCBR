@@ -292,12 +292,44 @@ class MultiCBR(nn.Module):
 
         # ==============================  UBI graph propagation =============================
         if test:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
-            UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
-        else:
-            UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
-            UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
+            # UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
+            # UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
+            ovl_UBI_users_feature, ovl_UBI_items_feature = self.propagate(self.ovl_UI_propagation_graph_ori,
+                                                                         self.users_feature,
+                                                                         self.items_feature,
+                                                                         "UBI",
+                                                                         self.UBI_layer_coefs,
+                                                                         test)
+            ovl_UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, ovl_UBI_items_feature, "BI", test)
 
+
+            non_UBI_users_feature, non_UBI_items_feature = self.propagate(self.non_ovl_UI_propagation_graph_ori,
+                                                                          self.users_feature,
+                                                                          self.items_feature,
+                                                                          "UBI",
+                                                                          self.UBI_layer_coefs,
+                                                                          test)
+            non_UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, non_UBI_items_feature, "BI", test)
+        else:
+            ovl_UBI_users_feature, ovl_UBI_items_feature = self.propagate(self.ovl_UI_propagation_graph_ori,
+                                                                         self.users_feature,
+                                                                         self.items_feature,
+                                                                         "UBI",
+                                                                         self.UBI_layer_coefs,
+                                                                         test)
+            ovl_UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, ovl_UBI_items_feature, "BI", test)
+
+
+            non_UBI_users_feature, non_UBI_items_feature = self.propagate(self.non_ovl_UI_propagation_graph,
+                                                                          self.users_feature,
+                                                                          self.items_feature,
+                                                                          "UBI",
+                                                                          self.UBI_layer_coefs,
+                                                                          test)
+            non_UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, non_UBI_items_feature, "BI", test)
+
+        UBI_users_feature = ovl_UBI_users_feature * 0.8 + non_UBI_users_feature * 0.2
+        UBI_bundles_feature = ovl_UBI_bundles_feature * 0.8 + non_UBI_bundles_feature * 0.2
 
         # users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
         # bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]
