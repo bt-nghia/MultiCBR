@@ -71,7 +71,7 @@ class MultiCBR(nn.Module):
         #item co-ocurence graph
         self.ubi_graph = self.ub_graph @ self.bi_graph
         self.overlap_ui = self.ubi_graph.multiply(self.ui_graph)
-        self.non_overlap_ui = self.ubi_graph - self.overlap_ui
+        self.non_overlap_ui = self.ui_graph - self.overlap_ui
 
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
