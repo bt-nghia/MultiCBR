@@ -51,19 +51,21 @@ iFashion:
   UI_ratios: [0.0]
   BI_ratios: [0.15]
   II_ratios: [0.1]
+  UBI_ratios: [0.2]
 
   fusion_weights:
-    modal_weight: [0.1, 0.2, 0.7]
+    modal_weight: [0.1, 0.0, 0.7, 0.2]
     UB_layer: [0.5, 0.5, 0.0]
     UI_layer: [0.3, 0.2, 0.5]
     BI_layer: [0.5, 0.5, 0.0]
+    UBI_layer: [0.6, 0.2, 0.2]
 
   lrs: [1.0e-3]
   l2_regs: [1.0e-5]
   c_lambdas: [0.1]
   c_temps: [0.2]
 
-  epochs: 50
+  epochs: 60
   test_interval: 1
 
 
