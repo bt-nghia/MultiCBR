@@ -69,31 +69,28 @@ class MultiCBR(nn.Module):
         self.ub_graph, self.ui_graph, self.bi_graph = raw_graph
 
         #item co-ocurence graph
-        self.ii_graph = self.bi_graph.T @ self.bi_graph
         self.ubi_graph = self.ub_graph @ self.bi_graph
+        self.overlap_ui = self.ubi_graph.multiply(self.ui_graph)
+        self.non_overlap_ui = self.ubi_graph - self.overlap_ui
+
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
-
         self.UI_propagation_graph_ori = self.get_propagation_graph(self.ui_graph)
         self.UI_aggregation_graph_ori = self.get_aggregation_graph(self.ui_graph)
-
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
-
-        self.II_propagation_graph_ori = self.get_propagation_graph_ii(self.ii_graph)
         self.UBI_propagation_graph_ori = self.get_propagation_graph(self.ubi_graph)
+        self.ovl_UI_propagation_graph_ori = self.get_propagation_graph(self.overlap_ui)
+        self.non_ovl_UI_propagation_graph_ori = self.get_propagation_graph(self.non_overlap_ui)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
-
         self.UI_propagation_graph = self.get_propagation_graph(self.ui_graph, self.conf["UI_ratio"])
         self.UI_aggregation_graph = self.get_aggregation_graph(self.ui_graph, self.conf["UI_ratio"])
-
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
-
-        self.II_propagation_graph = self.get_propagation_graph_ii(self.ii_graph, 0)
         self.UBI_propagation_graph = self.get_propagation_graph(self.ubi_graph, self.conf["UBI_ratio"])
+        self.non_ovl_UI_propagation_graph = self.get_propagation_graph(self.non_overlap_ui, self.conf["UI_ratio"])
 
         if self.conf['aug_type'] == 'MD':
             self.init_md_dropouts()
