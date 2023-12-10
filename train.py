@@ -112,6 +112,10 @@ def main():
 
         run = SummaryWriter(run_path)
 
+        log = open(log_path, "a")
+        log.write(str(conf))
+        log.close()
+        
         # model
         if conf['model'] == 'MultiCBR':
             model = MultiCBR(conf, dataset.graphs).to(device)
