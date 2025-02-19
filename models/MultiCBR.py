@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import scipy.sparse as sp 
-from models.AsymModule import *
+
 
 def cal_bpr_loss(pred):
     # pred: [bs, 1+neg_num]
@@ -68,20 +68,21 @@ class MultiCBR(nn.Module):
         assert isinstance(raw_graph, list)
         self.ub_graph, self.ui_graph, self.bi_graph = raw_graph
 
-        #item co-ocurence graph
-        self.ubi_graph = self.ub_graph @ self.bi_graph
-        
         # generate the graph without any dropouts for testing
         self.UB_propagation_graph_ori = self.get_propagation_graph(self.ub_graph)
+
         self.UI_propagation_graph_ori = self.get_propagation_graph(self.ui_graph)
         self.UI_aggregation_graph_ori = self.get_aggregation_graph(self.ui_graph)
+
         self.BI_propagation_graph_ori = self.get_propagation_graph(self.bi_graph)
         self.BI_aggregation_graph_ori = self.get_aggregation_graph(self.bi_graph)
 
         # generate the graph with the configured dropouts for training, if aug_type is OP or MD, the following graphs with be identical with the aboves
         self.UB_propagation_graph = self.get_propagation_graph(self.ub_graph, self.conf["UB_ratio"])
+
         self.UI_propagation_graph = self.get_propagation_graph(self.ui_graph, self.conf["UI_ratio"])
         self.UI_aggregation_graph = self.get_aggregation_graph(self.ui_graph, self.conf["UI_ratio"])
+
         self.BI_propagation_graph = self.get_propagation_graph(self.bi_graph, self.conf["BI_ratio"])
         self.BI_aggregation_graph = self.get_aggregation_graph(self.bi_graph, self.conf["BI_ratio"])
 
@@ -90,14 +91,6 @@ class MultiCBR(nn.Module):
         elif self.conf['aug_type'] == "Noise":
             self.init_noise_eps()
 
-        self.n_head = 2
-        self.a_self_loop = False
-        self.extra_layer = True
-        self.ibi_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_ibi.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
-        self.iui_edge_index = torch.tensor(np.load("datasets/{}/n_neigh_iui.npy".format(conf["dataset"]), allow_pickle=True)).to(self.device)
-        self.iui_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
-        self.ibi_asym = Amatrix(in_dim=64, out_dim=64, n_layer=1, dropout=0.1, heads=self.n_head, concat=False, self_loop=self.a_self_loop, extra_layer=self.extra_layer)
-        self.bs = 2048
 
     def init_md_dropouts(self):
         self.UB_dropout = nn.Dropout(self.conf["UB_ratio"], True)
@@ -106,7 +99,7 @@ class MultiCBR(nn.Module):
         self.mess_dropout_dict = {
             "UB": self.UB_dropout,
             "UI": self.UI_dropout,
-            "BI": self.BI_dropout,
+            "BI": self.BI_dropout
         }
 
 
@@ -117,14 +110,11 @@ class MultiCBR(nn.Module):
         self.eps_dict = {
             "UB": self.UB_eps,
             "UI": self.UI_eps,
-            "BI": self.BI_eps,
+            "BI": self.BI_eps
         }
 
 
     def init_emb(self):
-        '''
-        Try init normal
-        '''
         self.users_feature = nn.Parameter(torch.FloatTensor(self.num_users, self.embedding_size))
         nn.init.xavier_normal_(self.users_feature)
         self.bundles_feature = nn.Parameter(torch.FloatTensor(self.num_bundles, self.embedding_size))
@@ -137,9 +127,9 @@ class MultiCBR(nn.Module):
         assert (len(self.fusion_weights['modal_weight']) == 3), \
             "The number of modal fusion weights does not correspond to the number of graphs"
 
-        assert  (len(self.fusion_weights['UB_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['UI_layer']) == self.num_layers + 1) and\
-                (len(self.fusion_weights['BI_layer']) == self.num_layers + 1),\
+        assert (len(self.fusion_weights['UB_layer']) == self.num_layers + 1) and\
+               (len(self.fusion_weights['UI_layer']) == self.num_layers + 1) and \
+               (len(self.fusion_weights['BI_layer']) == self.num_layers + 1),\
             "The number of layer fusion weights does not correspond to number of layers"
 
         modal_coefs = torch.FloatTensor(self.fusion_weights['modal_weight'])
@@ -165,17 +155,7 @@ class MultiCBR(nn.Module):
                 propagation_graph = sp.coo_matrix((values, (graph.row, graph.col)), shape=graph.shape).tocsr()
 
         return to_tensor(laplace_transform(propagation_graph)).to(device)
-    
-    def get_self_propagation_graph(self, co_graph, modification_ratio=0, threshold=20):
-        propagation_graph = co_graph * (co_graph >= threshold)
 
-        if modification_ratio != 0:
-            if self.conf['aug_type'] == 'ED':
-                graph = propagation_graph.tocoo()
-                vals = np_edge_dropout(graph.data, modification_ratio)
-                propagation_graph = sp.coo_matrix((vals, (graph.row, graph.col)), shape=graph.shape).tocsr()
-
-        return to_tensor(laplace_transform(propagation_graph)).to(self.device)
 
     def get_aggregation_graph(self, bipartite_graph, modification_ratio=0):
         device = self.device
@@ -213,14 +193,6 @@ class MultiCBR(nn.Module):
 
         return A_feature, B_feature
 
-    def ii_propagate(self, ii_graph, i_feat, graph_type, layer_coef, test):
-        all_features = [i_feat]
-        for i in range(self.num_layers):
-            i_feat = torch.spmm(ii_graph, i_feat)
-            all_features.append(F.normalize(i_feat, p=2, dim=1))
-        all_features = torch.stack(all_features, dim=1) * layer_coef
-        all_features = torch.sum(all_features, dim=1)
-        return all_features / self.num_layers
 
     def aggregate(self, agg_graph, node_feature, graph_type, test):
         aggregated_feature = torch.matmul(agg_graph, node_feature)
@@ -246,32 +218,16 @@ class MultiCBR(nn.Module):
         bundles_rep = torch.sum(bundles_feature * self.modal_coefs, dim=0)
 
         return users_rep, bundles_rep
-    
-    def bi_propagate(self, bundle_feature, item_feature, edge, layer_coefs):
-        edge[1:] = edge[1:] + self.num_bundles
-        feat = torch.concat([bundle_feature, item_feature], dim=0)
-        feats = [feat]
-        for conv in self.gat_convs:
-            feat = conv(feat, edge)
-            feats.append(feat)
-        feats = torch.stack(feats, dim=1) * layer_coefs
-        feats = torch.sum(feats, dim=1)
-        bundle_feature, item_feature = torch.split([self.num_bundles, self.num_items], dim=0)
-        return bundle_feature, item_feature
 
 
     def get_multi_modal_representations(self, test=False):
         #  =============================  UB graph propagation  =============================
         if test:
-            # UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph_ori, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
         else:
-            # UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
             UB_users_feature, UB_bundles_feature = self.propagate(self.UB_propagation_graph, self.users_feature, self.bundles_feature, "UB", self.UB_layer_coefs, test)
 
         #  =============================  UI graph propagation  =============================
-        # item_feat1, _ = self.iui_asym(self.items_feature, self.iui_edge_index, return_attention_weights=True)
-        # item_feat1 = self.items_feature * 0.2 + item_feat1 * 0.8
         if test:
             UI_users_feature, UI_items_feature = self.propagate(self.UI_propagation_graph_ori, self.users_feature, self.items_feature, "UI", self.UI_layer_coefs, test)
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UI_items_feature, "BI", test)
@@ -280,8 +236,6 @@ class MultiCBR(nn.Module):
             UI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UI_items_feature, "BI", test)
 
         #  =============================  BI graph propagation  =============================
-        # item_feat2, _ = self.ibi_asym(self.items_feature, self.ibi_edge_index, return_attention_weights=True)
-        # item_feat2 = self.items_feature * 0.2 + item_feat2 * 0.8
         if test:
             BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph_ori, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph_ori, BI_items_feature, "UI", test)
@@ -289,19 +243,11 @@ class MultiCBR(nn.Module):
             BI_bundles_feature, BI_items_feature = self.propagate(self.BI_propagation_graph, self.bundles_feature, self.items_feature, "BI", self.BI_layer_coefs, test)
             BI_users_feature = self.aggregate(self.UI_aggregation_graph, BI_items_feature, "UI", test)
 
-        # ==============================  UBI graph propagation =============================
-        # if test:
-        #     UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph_ori, self.users_feature, self.items_feature,"UBI", self.UBI_layer_coefs, test)
-        #     UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph_ori, UBI_items_feature, "BI", test)
-        # else:
-        #     UBI_users_feature, UBI_items_feature = self.propagate(self.UBI_propagation_graph, self.users_feature, self.items_feature, "UBI", self.UBI_layer_coefs, test)
-        #     UBI_bundles_feature = self.aggregate(self.BI_aggregation_graph, UBI_items_feature, "BI", test)
-
-
         users_feature = [UB_users_feature, UI_users_feature, BI_users_feature]
         bundles_feature = [UB_bundles_feature, UI_bundles_feature, BI_bundles_feature]
 
         users_rep, bundles_rep = self.fuse_users_bundles_feature(users_feature, bundles_feature)
+
         return users_rep, bundles_rep
 
 
@@ -332,17 +278,12 @@ class MultiCBR(nn.Module):
         # cl is abbr. of "contrastive loss"
         u_view_cl = self.cal_c_loss(users_feature, users_feature)
         b_view_cl = self.cal_c_loss(bundles_feature, bundles_feature)
+
         c_losses = [u_view_cl, b_view_cl]
+
         c_loss = sum(c_losses) / len(c_losses)
 
-        ids = torch.randperm(self.ibi_edge_index.shape[1])
-        ids = ids[:self.bs]
-
-        item_feat1 = self.items_feature[self.ibi_edge_index[:,ids]]
-        item_feat2 = self.items_feature[self.ibi_edge_index[:,ids]]
-        cosine_loss = self.cal_cosine_loss(item_feat1, item_feat2)
-
-        return bpr_loss, c_loss + cosine_loss * 0.02
+        return bpr_loss, c_loss
 
 
     def forward(self, batch, ED_drop=False):
@@ -373,71 +314,3 @@ class MultiCBR(nn.Module):
         users_feature, bundles_feature = propagate_result
         scores = torch.mm(users_feature[users], bundles_feature.t())
         return scores
-    
-    def cal_topK_c_loss(self, pos, aug, kp=30, kn=2000, threshold=5e-1):
-        '''
-        contrastive loss for top k pairs
-        kp: topk positive
-        kn: topk negative
-        '''
-        pos = F.normalize(pos[:, 0, :], p=2, dim=1)
-        aug = F.normalize(aug[:, 0, :], p=2, dim=1)
-
-        sim = pos @ aug.T
-
-        topK_p_set = torch.topk(sim, k=kp, dim=1)
-        topk_n_set = torch.topk(sim, k=kn, dim=1)
-
-        pos_score = torch.sum(torch.exp(topK_p_set.values / self.c_temp))
-        neg_score = torch.sum(torch.exp(topk_n_set.values / self.c_temp))
-
-        return -torch.mean(torch.log(pos_score / neg_score))
-    
-    def cal_cosine_loss(self, feat1, feat2):
-        '''
-        feat1 [batch_size, n_dim]
-        feat2 [batch_size, n_dim]
-        maximize cosine similarity between 2 item have dege
-        return cosine similarity [batchsize,1]
-        '''
-        bs = feat1.shape[0]
-        sum_dot_prod = torch.sum(feat1 * feat2, dim=1).view(bs, 1)
-        norm1 = torch.sqrt(torch.sum(feat1 * feat1, dim=1)).view(bs, 1)
-        norm2 = torch.sqrt(torch.sum(feat2 * feat2, dim=1)).view(bs, 1)
-
-        return -torch.mean(sum_dot_prod / norm1 / norm2)
-    
-
-class Amatrix(nn.Module):
-    def __init__(self, in_dim, out_dim, n_layer=1, dropout=0.0, heads=2, concat=False, self_loop=True, extra_layer=False):
-        super(Amatrix, self).__init__()
-        self.num_layer = n_layer
-        self.dropout = dropout
-        self.in_dim = in_dim
-        self.out_dim = out_dim
-        self.heads = heads
-        self.concat = concat
-        self.self_loop = self_loop
-        self.extra_layer = extra_layer
-        self.convs = nn.ModuleList([AsymMatrix(in_channels=self.in_dim, 
-                                              out_channels=self.out_dim, 
-                                              dropout=self.dropout,
-                                              heads=self.heads,
-                                              concat=self.concat,
-                                              add_self_loops=self.self_loop,
-                                              extra_layer=self.extra_layer) 
-                                              for _ in range(self.num_layer)])
-
-
-    def forward(self, x, edge_index, return_attention_weights=True):
-        feats = [x]
-        attns = []
-
-        for conv in self.convs:
-            x, attn = conv(x, edge_index, return_attention_weights=return_attention_weights)
-            feats.append(x)
-            attns.append(attn)
-
-        feat = torch.stack(feats, dim=1)
-        x = torch.mean(feat, dim=1)
-        return x, attns
